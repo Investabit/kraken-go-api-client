@@ -25,7 +25,7 @@ func TestCreateSignature(t *testing.T) {
 }
 
 func TestTime(t *testing.T) {
-	resp, err := publicAPI.Time()
+	resp, _, err := publicAPI.Time()
 	if err != nil {
 		t.Errorf("Time() should not return an error, got %s", err)
 	}
@@ -36,14 +36,14 @@ func TestTime(t *testing.T) {
 }
 
 func TestAssets(t *testing.T) {
-	_, err := publicAPI.Assets()
+	_, _, err := publicAPI.Assets()
 	if err != nil {
 		t.Errorf("Assets() should not return an error, got %s", err)
 	}
 }
 
 func TestAssetPairs(t *testing.T) {
-	resp, err := publicAPI.AssetPairs()
+	resp, _, err := publicAPI.AssetPairs()
 	if err != nil {
 		t.Errorf("AssetPairs() should not return an error, got %s", err)
 	}
@@ -54,7 +54,7 @@ func TestAssetPairs(t *testing.T) {
 }
 
 func TestTicker(t *testing.T) {
-	resp, err := publicAPI.Ticker(XXBTZEUR, XXRPZEUR)
+	resp, _, err := publicAPI.Ticker(XXBTZEUR, XXRPZEUR)
 	if err != nil {
 		t.Errorf("Ticker() should not return an error, got %s", err)
 	}
@@ -65,7 +65,7 @@ func TestTicker(t *testing.T) {
 }
 
 func TestQueryTime(t *testing.T) {
-	result, err := publicAPI.Query("Time", map[string]string{})
+	result, _, err := publicAPI.Query("Time", map[string]string{})
 	resultKind := reflect.TypeOf(result).Kind()
 
 	if err != nil {
@@ -77,7 +77,7 @@ func TestQueryTime(t *testing.T) {
 }
 
 func TestQueryTicker(t *testing.T) {
-	result, err := publicAPI.Query("Ticker", map[string]string{
+	result, _, err := publicAPI.Query("Ticker", map[string]string{
 		"pair": "XXBTZEUR",
 	})
 	resultKind := reflect.TypeOf(result).Kind()
@@ -92,7 +92,7 @@ func TestQueryTicker(t *testing.T) {
 }
 
 func TestQueryTrades(t *testing.T) {
-	result, err := publicAPI.Trades(XXBTZEUR, 1495777604391411290)
+	result, _, err := publicAPI.Trades(XXBTZEUR, 1495777604391411290)
 
 	if err != nil {
 		t.Errorf("Trades should not return an error, got %s", err)
@@ -117,7 +117,7 @@ func TestQueryTrades(t *testing.T) {
 func TestQueryDepth(t *testing.T) {
 	pair := "XETHZEUR"
 	count := 10
-	result, err := publicAPI.Depth(pair, count)
+	result, _, err := publicAPI.Depth(pair, count)
 	if err != nil {
 		t.Errorf("Depth should not return an error, got %s", err)
 	}

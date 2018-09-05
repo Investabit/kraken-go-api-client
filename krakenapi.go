@@ -101,63 +101,63 @@ func NewWithClient(key, secret string, httpClient *http.Client) *KrakenApi {
 }
 
 // Time returns the server's time
-func (api *KrakenApi) Time() (*TimeResponse, error) {
-	resp, err := api.queryPublic("Time", nil, &TimeResponse{})
+func (api *KrakenApi) Time() (*TimeResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPublic("Time", nil, &TimeResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*TimeResponse), nil
+	return resp.(*TimeResponse), httpResp, nil
 }
 
 // Assets returns the servers available assets
-func (api *KrakenApi) Assets() (*AssetsResponse, error) {
-	resp, err := api.queryPublic("Assets", nil, &AssetsResponse{})
+func (api *KrakenApi) Assets() (*AssetsResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPublic("Assets", nil, &AssetsResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*AssetsResponse), nil
+	return resp.(*AssetsResponse), httpResp, nil
 }
 
 // AssetPairs returns the servers available asset pairs
-func (api *KrakenApi) AssetPairs() (*AssetPairsResponse, error) {
-	resp, err := api.queryPublic("AssetPairs", nil, &AssetPairsResponse{})
+func (api *KrakenApi) AssetPairs() (*AssetPairsResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPublic("AssetPairs", nil, &AssetPairsResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*AssetPairsResponse), nil
+	return resp.(*AssetPairsResponse), httpResp, nil
 }
 
 // Ticker returns the ticker for given comma separated pairs
-func (api *KrakenApi) Ticker(pairs ...string) (*TickerResponse, error) {
-	resp, err := api.queryPublic("Ticker", url.Values{
+func (api *KrakenApi) Ticker(pairs ...string) (*TickerResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPublic("Ticker", url.Values{
 		"pair": {strings.Join(pairs, ",")},
 	}, &TickerResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*TickerResponse), nil
+	return resp.(*TickerResponse), httpResp, nil
 }
 
 // Trades returns the recent trades for given pair
-func (api *KrakenApi) Trades(pair string, since int64) (*TradesResponse, error) {
+func (api *KrakenApi) Trades(pair string, since int64) (*TradesResponse, *http.Response, error) {
 	values := url.Values{"pair": {pair}}
 	if since > 0 {
 		values.Set("since", strconv.FormatInt(since, 10))
 	}
-	resp, err := api.queryPublic("Trades", values, nil)
+	resp, httpResp, err := api.queryPublic("Trades", values, nil)
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
 	v := resp.(map[string]interface{})
 
 	last, err := strconv.ParseInt(v["last"].(string), 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
 	result := &TradesResponse{
@@ -191,21 +191,21 @@ func (api *KrakenApi) Trades(pair string, since int64) (*TradesResponse, error) 
 		result.Trades = append(result.Trades, tradeInfo)
 	}
 
-	return result, nil
+	return result, httpResp, nil
 }
 
 // Balance returns all account asset balances
-func (api *KrakenApi) Balance() (*BalanceResponse, error) {
-	resp, err := api.queryPrivate("Balance", url.Values{}, &BalanceResponse{})
+func (api *KrakenApi) Balance() (*BalanceResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPrivate("Balance", url.Values{}, &BalanceResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*BalanceResponse), nil
+	return resp.(*BalanceResponse), httpResp, nil
 }
 
 // OpenOrders returns all open orders
-func (api *KrakenApi) OpenOrders(args map[string]string) (*OpenOrdersResponse, error) {
+func (api *KrakenApi) OpenOrders(args map[string]string) (*OpenOrdersResponse, *http.Response, error) {
 	params := url.Values{}
 	if value, ok := args["trades"]; ok {
 		params.Add("trades", value)
@@ -214,17 +214,17 @@ func (api *KrakenApi) OpenOrders(args map[string]string) (*OpenOrdersResponse, e
 		params.Add("userref", value)
 	}
 
-	resp, err := api.queryPrivate("OpenOrders", params, &OpenOrdersResponse{})
+	resp, httpResp, err := api.queryPrivate("OpenOrders", params, &OpenOrdersResponse{})
 
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*OpenOrdersResponse), nil
+	return resp.(*OpenOrdersResponse), httpResp, nil
 }
 
 // ClosedOrders returns all closed orders
-func (api *KrakenApi) ClosedOrders(args map[string]string) (*ClosedOrdersResponse, error) {
+func (api *KrakenApi) ClosedOrders(args map[string]string) (*ClosedOrdersResponse, *http.Response, error) {
 	params := url.Values{}
 	if value, ok := args["trades"]; ok {
 		params.Add("trades", value)
@@ -244,48 +244,48 @@ func (api *KrakenApi) ClosedOrders(args map[string]string) (*ClosedOrdersRespons
 	if value, ok := args["closetime"]; ok {
 		params.Add("closetime", value)
 	}
-	resp, err := api.queryPrivate("ClosedOrders", params, &ClosedOrdersResponse{})
+	resp, httpResp, err := api.queryPrivate("ClosedOrders", params, &ClosedOrdersResponse{})
 
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*ClosedOrdersResponse), nil
+	return resp.(*ClosedOrdersResponse), httpResp, nil
 }
 
 // Depth returns the order book for given pair and orders count.
-func (api *KrakenApi) Depth(pair string, count int) (*OrderBook, error) {
+func (api *KrakenApi) Depth(pair string, count int) (*OrderBook, *http.Response, error) {
 	dr := DepthResponse{}
-	_, err := api.queryPublic("Depth", url.Values{
+	_, httpResp, err := api.queryPublic("Depth", url.Values{
 		"pair": {pair}, "count": {strconv.Itoa(count)},
 	}, &dr)
 
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
 	if book, found := dr[pair]; found {
-		return &book, nil
+		return &book, httpResp, nil
 	}
 
-	return nil, errors.New("invalid response")
+	return nil, httpResp, errors.New("invalid response")
 }
 
 // CancelOrder cancels order
-func (api *KrakenApi) CancelOrder(txid string) (*CancelOrderResponse, error) {
+func (api *KrakenApi) CancelOrder(txid string) (*CancelOrderResponse, *http.Response, error) {
 	params := url.Values{}
 	params.Add("txid", txid)
-	resp, err := api.queryPrivate("CancelOrder", params, &CancelOrderResponse{})
+	resp, httpResp, err := api.queryPrivate("CancelOrder", params, &CancelOrderResponse{})
 
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*CancelOrderResponse), nil
+	return resp.(*CancelOrderResponse), httpResp, nil
 }
 
 // QueryOrders shows order
-func (api *KrakenApi) QueryOrders(txids string, args map[string]string) (*QueryOrdersResponse, error) {
+func (api *KrakenApi) QueryOrders(txids string, args map[string]string) (*QueryOrdersResponse, *http.Response, error) {
 	params := url.Values{"txid": {txids}}
 	if value, ok := args["trades"]; ok {
 		params.Add("trades", value)
@@ -293,17 +293,17 @@ func (api *KrakenApi) QueryOrders(txids string, args map[string]string) (*QueryO
 	if value, ok := args["userref"]; ok {
 		params.Add("userref", value)
 	}
-	resp, err := api.queryPrivate("QueryOrders", params, &QueryOrdersResponse{})
+	resp, httpResp, err := api.queryPrivate("QueryOrders", params, &QueryOrdersResponse{})
 
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*QueryOrdersResponse), nil
+	return resp.(*QueryOrdersResponse), httpResp, nil
 }
 
 // AddOrder adds new order
-func (api *KrakenApi) AddOrder(pair string, direction string, orderType string, volume string, args map[string]string) (*AddOrderResponse, error) {
+func (api *KrakenApi) AddOrder(pair string, direction string, orderType string, volume string, args map[string]string) (*AddOrderResponse, *http.Response, error) {
 	params := url.Values{
 		"pair":      {pair},
 		"type":      {direction},
@@ -344,17 +344,17 @@ func (api *KrakenApi) AddOrder(pair string, direction string, orderType string, 
 	if value, ok := args["trading_agreement"]; ok {
 		params.Add("trading_agreement", value)
 	}
-	resp, err := api.queryPrivate("AddOrder", params, &AddOrderResponse{})
+	resp, httpResp, err := api.queryPrivate("AddOrder", params, &AddOrderResponse{})
 
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
 
-	return resp.(*AddOrderResponse), nil
+	return resp.(*AddOrderResponse), httpResp, nil
 }
 
 // Query sends a query to Kraken api for given method and parameters
-func (api *KrakenApi) Query(method string, data map[string]string) (interface{}, error) {
+func (api *KrakenApi) Query(method string, data map[string]string) (interface{}, *http.Response, error) {
 	values := url.Values{}
 	for key, value := range data {
 		values.Set(key, value)
@@ -367,23 +367,23 @@ func (api *KrakenApi) Query(method string, data map[string]string) (interface{},
 		return api.queryPrivate(method, values, nil)
 	}
 
-	return nil, fmt.Errorf("Method '%s' is not valid", method)
+	return nil, nil, fmt.Errorf("Method '%s' is not valid", method)
 }
 
 // Execute a public method query
-func (api *KrakenApi) queryPublic(method string, values url.Values, typ interface{}) (interface{}, error) {
+func (api *KrakenApi) queryPublic(method string, values url.Values, typ interface{}) (interface{}, *http.Response, error) {
 	url := fmt.Sprintf("%s/%s/public/%s", APIURL, APIVersion, method)
-	resp, err := api.doRequest(url, values, nil, typ)
+	resp, httpResp, err := api.doRequest(url, values, nil, typ)
 
-	return resp, err
+	return resp, httpResp, err
 }
 
 // queryPrivate executes a private method query
-func (api *KrakenApi) queryPrivate(method string, values url.Values, typ interface{}) (interface{}, error) {
+func (api *KrakenApi) queryPrivate(method string, values url.Values, typ interface{}) (interface{}, *http.Response, error) {
 	urlPath := fmt.Sprintf("/%s/private/%s", APIVersion, method)
 	reqURL := fmt.Sprintf("%s%s", APIURL, urlPath)
 	secret, _ := base64.StdEncoding.DecodeString(api.secret)
-	values.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano()))
+	values.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano())) // Likely have to mutex this.
 
 	// Create signature
 	signature := createSignature(urlPath, values, secret)
@@ -394,18 +394,18 @@ func (api *KrakenApi) queryPrivate(method string, values url.Values, typ interfa
 		"API-Sign": signature,
 	}
 
-	resp, err := api.doRequest(reqURL, values, headers, typ)
+	resp, httpResp, err := api.doRequest(reqURL, values, headers, typ)
 
-	return resp, err
+	return resp, httpResp, err
 }
 
 // doRequest executes a HTTP Request to the Kraken API and returns the result
-func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[string]string, typ interface{}) (interface{}, error) {
+func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[string]string, typ interface{}) (interface{}, *http.Response, error) {
 
 	// Create request
 	req, err := http.NewRequest("POST", reqURL, strings.NewReader(values.Encode()))
 	if err != nil {
-		return nil, fmt.Errorf("Could not execute request! #1 (%s)", err.Error())
+		return nil, nil, fmt.Errorf("Could not execute request! #1 (%s)", err.Error())
 	}
 
 	req.Header.Add("User-Agent", APIUserAgent)
@@ -416,23 +416,23 @@ func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[st
 	// Execute request
 	resp, err := api.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Could not execute request! #2 (%s)", err.Error())
+		return nil, resp, fmt.Errorf("Could not execute request! #2 (%s)", err.Error())
 	}
 	defer resp.Body.Close()
 
 	// Read request
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Could not execute request! #3 (%s)", err.Error())
+		return nil, resp, fmt.Errorf("Could not execute request! #3 (%s)", err.Error())
 	}
 
 	// Check mime type of response
 	mimeType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil {
-		return nil, fmt.Errorf("Could not execute request #4! (%s)", err.Error())
+		return nil, resp, fmt.Errorf("Could not execute request #4! (%s)", err.Error())
 	}
 	if mimeType != "application/json" {
-		return nil, fmt.Errorf("Could not execute request #5! (%s)", fmt.Sprintf("Response Content-Type is '%s', but should be 'application/json'.", mimeType))
+		return nil, resp, fmt.Errorf("Could not execute request #5! (%s)", fmt.Sprintf("Response Content-Type is '%s', but should be 'application/json'.", mimeType))
 	}
 
 	// Parse request
@@ -446,15 +446,15 @@ func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[st
 
 	err = json.Unmarshal(body, &jsonData)
 	if err != nil {
-		return nil, fmt.Errorf("Could not execute request! #6 (%s)", err.Error())
+		return nil, resp, fmt.Errorf("Could not execute request! #6 (%s)", err.Error())
 	}
 
 	// Check for Kraken API error
 	if len(jsonData.Error) > 0 {
-		return nil, fmt.Errorf("Could not execute request! #7 (%s)", jsonData.Error)
+		return nil, resp, fmt.Errorf("Could not execute request! #7 (%s)", jsonData.Error)
 	}
 
-	return jsonData.Result, nil
+	return jsonData.Result, resp, nil
 }
 
 // isStringInSlice is a helper function to test if given term is in a list of strings
