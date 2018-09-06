@@ -422,18 +422,19 @@ type Order struct {
 }
 
 type Trade struct {
-	TransactionID string  `json:"ordertxid"`
-	Pair          string  `json:"pair"`
-	Time          float64 `json:"time"`
-	Type          string  `json:"type"`
-	OrderType     string  `json:"ordertype"`
-	Price         float64 `json:"price,string"`
-	Cost          float64 `json:"cost,string"`
-	Fee           float64 `json:"fee,string"`
-	Volume        float64 `json:"vol,string"`
-	Margin        float64 `json:"margin,string"`
-	Misc          string  `json:"misc"`
-	Closing       string  `json:"closing"`
+	TransactionID  string  `json:"ordertxid"`
+	PostXID        string  `json:"postxid"`
+	PositionStatus string  `json:"posstatus"`
+	Pair           string  `json:"pair"`
+	Time           float64 `json:"time"`
+	Type           string  `json:"type"`
+	OrderType      string  `json:"ordertype"`
+	Price          float64 `json:"price,string"`
+	Cost           float64 `json:"cost,string"`
+	Fee            float64 `json:"fee,string"`
+	Volume         float64 `json:"vol,string"`
+	Margin         float64 `json:"margin,string"`
+	Misc           string  `json:"misc"`
 }
 
 // ClosedOrdersResponse represents a list of closed orders, indexed by id
@@ -503,6 +504,28 @@ type TradesHistoryResponse struct {
 	Count  int              `json:"count"`
 }
 
-type QueryTradesResponse TradesHistoryResponse
+type QueryTradesResponse map[string]Trade
 
 type QueryOrdersResponse map[string]Order
+
+type PositionsResponse map[string]Position
+
+type Position struct {
+	TransactionID  string  `json:"ordertxid"`
+	PositionStatus string  `json:"posstatus"`
+	Pair           string  `json:"pair"`
+	Time           float64 `json:"time"`
+	Type           string  `json:"type"`
+	OrderType      string  `json:"ordertype"`
+	Cost           float64 `json:"cost,string"`
+	Fee            float64 `json:"fee,string"`
+	Volume         float64 `json:"vol,string"`
+	VolumeClosed   float64 `json:"vol_closed,string"`
+	Margin         float64 `json:"margin,string"`
+	Value          float64 `json:"value,string"` // if docalcs == true
+	Net            float64 `json:"net,string"`   // if docalcs == true
+	Terms          string  `json:"terms"`
+	RollOverTM     string  `json:"rollovertm"`
+	Misc           string  `json:"misc"`
+	Oflags         string  `json:"oflags"`
+}

@@ -221,15 +221,15 @@ func (api *KrakenApi) Trades(pair string, since int64) (*TradesResponse, *http.R
 
 // Balance returns all account asset balances
 func (api *KrakenApi) Balance() (*BalanceResponse, *http.Response, error) {
-	resp, httpResp, err := api.queryPrivate("Balance", url.Values{}, &BalanceResponse{})
+	resp, httpResp, err := api.queryPrivate("Balance", url.Values{}, nil)
 	if err != nil {
 		return nil, httpResp, err
 	}
 
-	var balance *BalanceResponse
-	*balance = resp.(BalanceResponse)
+	var balance BalanceResponse
+	balance = resp.(BalanceResponse)
 
-	return balance, httpResp, nil
+	return &balance, httpResp, nil
 }
 
 // OpenOrders returns all open orders
@@ -343,6 +343,25 @@ func (api *KrakenApi) QueryTrades(txid string, trades bool) (*QueryTradesRespons
 	}
 
 	return resp.(*QueryTradesResponse), httpResp, nil
+}
+
+// GetOpenPositions retrieves the open positions
+func (api *KrakenApi) GetOpenPositions(args map[string]string) (*PositionsResponse, *http.Response, error) {
+	params := url.Values{}
+	if value, ok := args["txid"]; ok {
+		params.Add("txid", value)
+	}
+	if value, ok := args["docalcs"]; ok {
+		params.Add("docalcs", value)
+	}
+
+	resp, httpResp, err := api.queryPrivate("OpenPositions", params, &PositionsResponse{})
+
+	if err != nil {
+		return nil, httpResp, err
+	}
+
+	return resp.(*PositionsResponse), httpResp, nil
 }
 
 // AddOrder adds new order
@@ -545,8 +564,8 @@ func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[st
 	}
 
 	if typ == nil {
-		result := gjson.ParseBytes(body)
-		mapList := make(map[string]float64)
+		result := gjson.GetBytes(body, "result")
+		mapList := BalanceResponse{}
 		result.ForEach(
 			func(key, value gjson.Result) bool {
 				mapList[key.String()] = value.Float()
