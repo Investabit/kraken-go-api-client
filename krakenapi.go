@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/tidwall/gjson"
@@ -88,9 +89,11 @@ const (
 
 // KrakenApi represents a Kraken API Client connection
 type KrakenApi struct {
-	key    string
-	secret string
-	client *http.Client
+	key               string
+	secret            string
+	client            *http.Client
+	mutex             *sync.Mutex
+	serializeRequests bool
 }
 
 // New creates a new Kraken API client
@@ -99,7 +102,26 @@ func New(key, secret string) *KrakenApi {
 }
 
 func NewWithClient(key, secret string, httpClient *http.Client) *KrakenApi {
-	return &KrakenApi{key, secret, httpClient}
+	return NewWithClientSerialized(
+		key,
+		secret,
+		httpClient,
+		nil,
+	)
+}
+
+func NewWithClientSerialized(
+	key, secret string,
+	httpClient *http.Client,
+	mutex *sync.Mutex,
+) *KrakenApi {
+	return &KrakenApi{
+		key:               key,
+		secret:            secret,
+		client:            httpClient,
+		serializeRequests: mutex != nil,
+		mutex:             mutex,
+	}
 }
 
 // Time returns the server's time
@@ -388,6 +410,12 @@ func (api *KrakenApi) queryPrivate(method string, values url.Values, typ interfa
 	urlPath := fmt.Sprintf("/%s/private/%s", APIVersion, method)
 	reqURL := fmt.Sprintf("%s%s", APIURL, urlPath)
 	secret, _ := base64.StdEncoding.DecodeString(api.secret)
+
+	if api.serializeRequests {
+		api.mutex.Lock()
+		defer api.mutex.Unlock()
+	}
+
 	values.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano())) // Likely have to mutex this.
 
 	// Create signature
