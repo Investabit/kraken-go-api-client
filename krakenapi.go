@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -201,7 +203,10 @@ func (api *KrakenApi) Balance() (*BalanceResponse, *http.Response, error) {
 		return nil, httpResp, err
 	}
 
-	return resp.(*BalanceResponse), httpResp, nil
+	var balance *BalanceResponse
+	*balance = resp.(BalanceResponse)
+
+	return balance, httpResp, nil
 }
 
 // OpenOrders returns all open orders
@@ -433,6 +438,19 @@ func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[st
 	}
 	if mimeType != "application/json" {
 		return nil, resp, fmt.Errorf("Could not execute request #5! (%s)", fmt.Sprintf("Response Content-Type is '%s', but should be 'application/json'.", mimeType))
+	}
+
+	if typ == nil {
+		result := gjson.ParseBytes(body)
+		mapList := make(map[string]float64)
+		result.ForEach(
+			func(key, value gjson.Result) bool {
+				mapList[key.String()] = value.Float()
+				return true
+			},
+		)
+
+		return mapList, resp, nil
 	}
 
 	// Parse request

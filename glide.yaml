@@ -1,0 +1,4 @@
+package: github.com/kraken-go-api-client
+import:
+- package: github.com/tidwall/gjson
+  version: v1.1.3
