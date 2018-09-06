@@ -330,6 +330,21 @@ func (api *KrakenApi) QueryOrders(txids string, args map[string]string) (*QueryO
 	return resp.(*QueryOrdersResponse), httpResp, nil
 }
 
+// QueryTrades
+func (api *KrakenApi) QueryTrades(txid string, trades bool) (*QueryTradesResponse, *http.Response, error) {
+	params := url.Values{}
+	params.Add("txid", txid)
+	params.Add("trades", strconv.FormatBool(trades))
+
+	resp, httpResp, err := api.queryPrivate("QueryTrades", params, &QueryTradesResponse{})
+
+	if err != nil {
+		return nil, httpResp, err
+	}
+
+	return resp.(*QueryTradesResponse), httpResp, nil
+}
+
 // AddOrder adds new order
 func (api *KrakenApi) AddOrder(pair string, direction string, orderType string, volume string, args map[string]string) (*AddOrderResponse, *http.Response, error) {
 	params := url.Values{
@@ -382,41 +397,59 @@ func (api *KrakenApi) AddOrder(pair string, direction string, orderType string, 
 }
 
 // DepositAddresses returns deposit addresses
-func (api *KrakenApi) DepositAddresses(asset string, method string) (*DepositAddressesResponse, error) {
-	resp, err := api.queryPrivate("DepositAddresses", url.Values{
+func (api *KrakenApi) DepositAddresses(asset string, method string) (*DepositAddressesResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPrivate("DepositAddresses", url.Values{
 		"asset":  {asset},
 		"method": {method},
 	}, &DepositAddressesResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
-	return resp.(*DepositAddressesResponse), nil
+	return resp.(*DepositAddressesResponse), httpResp, nil
 }
 
 // Withdraw executes a withdrawal, returning a reference ID
-func (api *KrakenApi) Withdraw(asset string, key string, amount *big.Float) (*WithdrawResponse, error) {
-	resp, err := api.queryPrivate("Withdraw", url.Values{
+func (api *KrakenApi) Withdraw(asset string, key string, amount *big.Float) (*WithdrawResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPrivate("Withdraw", url.Values{
 		"asset":  {asset},
 		"key":    {key},
 		"amount": {amount.String()},
 	}, &WithdrawResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
-	return resp.(*WithdrawResponse), nil
+	return resp.(*WithdrawResponse), httpResp, nil
 }
 
 // WithdrawInfo returns withdrawal information
-func (api *KrakenApi) WithdrawInfo(asset string, key string, amount *big.Float) (*WithdrawInfoResponse, error) {
-	resp, err := api.queryPrivate("WithdrawInfo", url.Values{
+func (api *KrakenApi) WithdrawInfo(asset string, key string, amount *big.Float) (*WithdrawInfoResponse, *http.Response, error) {
+	resp, httpResp, err := api.queryPrivate("WithdrawInfo", url.Values{
 		"asset":  {asset},
 		"key":    {key},
 		"amount": {amount.String()},
 	}, &WithdrawInfoResponse{})
 	if err != nil {
-		return nil, err
+		return nil, httpResp, err
 	}
-	return resp.(*WithdrawInfoResponse), nil
+	return resp.(*WithdrawInfoResponse), httpResp, nil
+}
+
+// TradeBalance returns all account asset balances
+func (api *KrakenApi) TradeBalance(args map[string]string) (*TradeBalanceResponse, *http.Response, error) {
+	params := url.Values{}
+	if value, ok := args["aclass"]; ok {
+		params.Add("aclass", value)
+	}
+	if value, ok := args["asset"]; ok {
+		params.Add("asset", value)
+	}
+
+	resp, httpResp, err := api.queryPrivate("TradeBalance", params, &TradeBalanceResponse{})
+	if err != nil {
+		return nil, httpResp, err
+	}
+
+	return resp.(*TradeBalanceResponse), httpResp, nil
 }
 
 // Query sends a query to Kraken api for given method and parameters
@@ -491,6 +524,10 @@ func (api *KrakenApi) doRequest(reqURL string, values url.Values, headers map[st
 		return nil, resp, fmt.Errorf("Could not execute request! #2 (%s)", err.Error())
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 500 {
+		return nil, resp, fmt.Errorf("Could not execute request!(%s)", resp.Status)
+	}
 
 	// Read request
 	body, err := ioutil.ReadAll(resp.Body)

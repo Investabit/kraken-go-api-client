@@ -226,6 +226,18 @@ type AssetInfo struct {
 	DisplayDecimals int `json:"display_decimals"`
 }
 
+type TradeBalanceResponse struct {
+	EquivalentBalance   float64 `json:"eb,string"`
+	TradeBalance        float64 `json:"tb,string"`
+	MarginAmount        float64 `json:"m,string"`
+	UnrealizedNetProfit float64 `json:"n,string"`
+	Cost                float64 `json:"c,string"`
+	Valuation           float64 `json:"v,string"`
+	Equity              float64 `json:"e,string"`
+	FreeMargin          float64 `json:"mf,string"`
+	MarginLevel         float64 `json:"ml,string"`
+}
+
 type BalanceResponse map[string]float64
 
 // TickerResponse includes the requested ticker pairs
@@ -409,6 +421,21 @@ type Order struct {
 	Reason         string           `json:"reason"`
 }
 
+type Trade struct {
+	TransactionID string  `json:"ordertxid"`
+	Pair          string  `json:"pair"`
+	Time          float64 `json:"time"`
+	Type          string  `json:"type"`
+	OrderType     string  `json:"ordertype"`
+	Price         float64 `json:"price,string"`
+	Cost          float64 `json:"cost,string"`
+	Fee           float64 `json:"fee,string"`
+	Volume        float64 `json:"vol,string"`
+	Margin        float64 `json:"margin,string"`
+	Misc          string  `json:"misc"`
+	Closing       string  `json:"closing"`
+}
+
 // ClosedOrdersResponse represents a list of closed orders, indexed by id
 type ClosedOrdersResponse struct {
 	Closed map[string]Order `json:"closed"`
@@ -470,5 +497,12 @@ type CancelOrderResponse struct {
 	Count   int  `json:"count"`
 	Pending bool `json:"pending"`
 }
+
+type TradesHistoryResponse struct {
+	Trades map[string]Trade `json:"trades"`
+	Count  int              `json:"count"`
+}
+
+type QueryTradesResponse TradesHistoryResponse
 
 type QueryOrdersResponse map[string]Order
