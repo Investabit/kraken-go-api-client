@@ -1,6 +1,7 @@
 package krakenapi
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -17,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/tidwall/gjson"
 )
@@ -95,6 +98,8 @@ type KrakenApi struct {
 	client            *http.Client
 	mutex             *sync.Mutex
 	serializeRequests bool
+	enableRateLimiter bool
+	limiter           *rate.Limiter
 }
 
 // New creates a new Kraken API client
@@ -123,6 +128,37 @@ func NewWithClientSerialized(
 		serializeRequests: mutex != nil,
 		mutex:             mutex,
 	}
+}
+
+func NewWithClientSerializedRateLimited(
+	key, secret string,
+	httpClient *http.Client,
+	mutex *sync.Mutex,
+	refreshRate time.Duration,
+	maxBurst int,
+) *KrakenApi {
+	k := &KrakenApi{
+		key:               key,
+		secret:            secret,
+		client:            httpClient,
+		serializeRequests: mutex != nil,
+		mutex:             mutex,
+	}
+
+	k.SetRateLimiter(
+		refreshRate,
+		maxBurst,
+	)
+
+	return k
+}
+
+func (api *KrakenApi) SetRateLimiter(
+	refreshRate time.Duration,
+	maxBurst int,
+) {
+	api.enableRateLimiter = true
+	api.limiter = rate.NewLimiter(rate.Every(refreshRate), maxBurst)
 }
 
 // Time returns the server's time
@@ -221,6 +257,7 @@ func (api *KrakenApi) Trades(pair string, since int64) (*TradesResponse, *http.R
 
 // Balance returns all account asset balances
 func (api *KrakenApi) Balance() (*BalanceResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	resp, httpResp, err := api.queryPrivate("Balance", url.Values{}, nil)
 	if err != nil {
 		return nil, httpResp, err
@@ -234,6 +271,7 @@ func (api *KrakenApi) Balance() (*BalanceResponse, *http.Response, error) {
 
 // OpenOrders returns all open orders
 func (api *KrakenApi) OpenOrders(args map[string]string) (*OpenOrdersResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	params := url.Values{}
 	if value, ok := args["trades"]; ok {
 		params.Add("trades", value)
@@ -253,6 +291,7 @@ func (api *KrakenApi) OpenOrders(args map[string]string) (*OpenOrdersResponse, *
 
 // ClosedOrders returns all closed orders
 func (api *KrakenApi) ClosedOrders(args map[string]string) (*ClosedOrdersResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	params := url.Values{}
 	if value, ok := args["trades"]; ok {
 		params.Add("trades", value)
@@ -314,6 +353,7 @@ func (api *KrakenApi) CancelOrder(txid string) (*CancelOrderResponse, *http.Resp
 
 // QueryOrders shows order
 func (api *KrakenApi) QueryOrders(txids string, args map[string]string) (*QueryOrdersResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	params := url.Values{"txid": {txids}}
 	if value, ok := args["trades"]; ok {
 		params.Add("trades", value)
@@ -332,6 +372,7 @@ func (api *KrakenApi) QueryOrders(txids string, args map[string]string) (*QueryO
 
 // QueryTrades
 func (api *KrakenApi) QueryTrades(txid string, trades bool) (*QueryTradesResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	params := url.Values{}
 	params.Add("txid", txid)
 	params.Add("trades", strconv.FormatBool(trades))
@@ -345,8 +386,47 @@ func (api *KrakenApi) QueryTrades(txid string, trades bool) (*QueryTradesRespons
 	return resp.(*QueryTradesResponse), httpResp, nil
 }
 
+// DepositStatus retrieves deposit statuses
+func (api *KrakenApi) DepositStatus(asset string, args map[string]string) (*DepositStatusResponse, *http.Response, error) {
+	resp, httpResp, err := api.movementStatus("DepositStatus", asset, args, &DepositStatusResponse{})
+
+	if err != nil {
+		return nil, httpResp, err
+	}
+
+	return resp.(*DepositStatusResponse), httpResp, nil
+}
+
+// WithdrawStatus retrieves withdraw statuses
+func (api *KrakenApi) WithdrawStatus(asset string, args map[string]string) (*WithdrawStatusResponse, *http.Response, error) {
+	resp, httpResp, err := api.movementStatus("WithdrawStatus", asset, args, &WithdrawStatusResponse{})
+
+	if err != nil {
+		return nil, httpResp, err
+	}
+
+	return resp.(*WithdrawStatusResponse), httpResp, nil
+}
+
+func (api *KrakenApi) movementStatus(movementType string, asset string, args map[string]string, typ interface{}) (interface{}, *http.Response, error) {
+	api.limiter.Wait(context.Background())
+	params := url.Values{}
+	params.Add("asset", asset)
+
+	if value, ok := args["method"]; ok {
+		params.Add("method", value)
+	}
+
+	if value, ok := args["aclass"]; ok {
+		params.Add("aclass", value)
+	}
+
+	return api.queryPrivate(movementType, params, typ)
+}
+
 // GetOpenPositions retrieves the open positions
 func (api *KrakenApi) GetOpenPositions(args map[string]string) (*PositionsResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	params := url.Values{}
 	if value, ok := args["txid"]; ok {
 		params.Add("txid", value)
@@ -417,6 +497,7 @@ func (api *KrakenApi) AddOrder(pair string, direction string, orderType string, 
 
 // DepositAddresses returns deposit addresses
 func (api *KrakenApi) DepositAddresses(asset string, method string) (*DepositAddressesResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	resp, httpResp, err := api.queryPrivate("DepositAddresses", url.Values{
 		"asset":  {asset},
 		"method": {method},
@@ -429,6 +510,7 @@ func (api *KrakenApi) DepositAddresses(asset string, method string) (*DepositAdd
 
 // Withdraw executes a withdrawal, returning a reference ID
 func (api *KrakenApi) Withdraw(asset string, key string, amount *big.Float) (*WithdrawResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	resp, httpResp, err := api.queryPrivate("Withdraw", url.Values{
 		"asset":  {asset},
 		"key":    {key},
@@ -442,6 +524,7 @@ func (api *KrakenApi) Withdraw(asset string, key string, amount *big.Float) (*Wi
 
 // WithdrawInfo returns withdrawal information
 func (api *KrakenApi) WithdrawInfo(asset string, key string, amount *big.Float) (*WithdrawInfoResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	resp, httpResp, err := api.queryPrivate("WithdrawInfo", url.Values{
 		"asset":  {asset},
 		"key":    {key},
@@ -455,6 +538,7 @@ func (api *KrakenApi) WithdrawInfo(asset string, key string, amount *big.Float) 
 
 // TradeBalance returns all account asset balances
 func (api *KrakenApi) TradeBalance(args map[string]string) (*TradeBalanceResponse, *http.Response, error) {
+	api.limiter.Wait(context.Background())
 	params := url.Values{}
 	if value, ok := args["aclass"]; ok {
 		params.Add("aclass", value)

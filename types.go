@@ -435,6 +435,7 @@ type Trade struct {
 	Volume         float64 `json:"vol,string"`
 	Margin         float64 `json:"margin,string"`
 	Misc           string  `json:"misc"`
+	// Closing        string  `json:"closing"`
 }
 
 // ClosedOrdersResponse represents a list of closed orders, indexed by id
@@ -523,9 +524,27 @@ type Position struct {
 	VolumeClosed   float64 `json:"vol_closed,string"`
 	Margin         float64 `json:"margin,string"`
 	Value          float64 `json:"value,string"` // if docalcs == true
-	Net            float64 `json:"net,string"`   // if docalcs == true
+	Net            string  `json:"net"`          // if docalcs == true
 	Terms          string  `json:"terms"`
 	RollOverTM     string  `json:"rollovertm"`
 	Misc           string  `json:"misc"`
 	Oflags         string  `json:"oflags"`
+}
+
+type DepositStatusResponse []MovementStatus
+
+type WithdrawStatusResponse []MovementStatus
+
+type MovementStatus struct {
+	Method     string      `json:"method"`
+	AClass     string      `json:"aclass"`
+	Asset      string      `json:"asset"`
+	RefId      string      `json:"refid"`
+	TxId       string      `json:"txid"`
+	Info       string      `json:"info"`
+	Amount     float64     `json:"amount,string"` // likely a string given how everything else is a string float
+	Fee        float64     `json:"fee,string"`
+	Time       float64     `json:"time"`
+	Status     string      `json:"status"`
+	StatusProp interface{} `json:"status-prop"` // Not sure whether this will be a map or a string
 }
