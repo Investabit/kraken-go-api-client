@@ -72,6 +72,7 @@ var privateMethods = []string{
 var privateMethodTokenCountOverrides = map[string]int{
 	"Ledgers":      2,
 	"QueryLedgers": 2,
+	"ClosedOrders": 2,
 	"AddOrder":     0,
 	"CancelOrder":  0,
 }
